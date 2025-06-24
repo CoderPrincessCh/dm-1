@@ -10,25 +10,44 @@ DANMU_API = "https://www.missevan.com/sound/getdm"
 
 
 def search_drama(keyword: str):
-    params = {
-        "s": keyword,
-        "p": 1,
-        "type": 3,
-        "page_size": 400
-    }
-    try:
-        response = requests.get(SEARCH_API, params=params)
-        response.raise_for_status()
-        data = response.json()
-        datas = data.get("info", {}).get("Datas", [])
-        return [
-            (item["id"], item["soundstr"])
-            for item in datas
-            if item.get("pay_type") == "2"
-        ]
-    except Exception as e:
-        print("❌ 搜索失败:", e)
-        return []
+    page = 1
+    page_size = 30
+    collected = []
+    keyword_lower = keyword.strip().lower()
+
+    while True:
+        params = {
+            "s": keyword,
+            "p": page,
+            "type": 3,
+            "page_size": page_size
+        }
+        try:
+            response = requests.get(SEARCH_API, params=params)
+            response.raise_for_status()
+            data = response.json()
+            datas = data.get("info", {}).get("Datas", [])
+
+            # 👇 强化过滤逻辑
+            filtered = [
+                (item["id"], item["soundstr"])
+                for item in datas
+                if item.get("pay_type") == "2"
+                and keyword_lower in item.get("soundstr", "").lower()
+            ]
+            collected.extend(filtered)
+
+            print(f"📄 第 {page} 页，获取 {len(datas)} 条，总计符合条件 {len(filtered)} 条")
+
+            if len(datas) < page_size:
+                break
+            page += 1
+
+        except Exception as e:
+            print(f"❌ 请求第 {page} 页失败:", e)
+            break
+
+    return collected
 
 def fetch_danmu(soundid: str):
     try:
