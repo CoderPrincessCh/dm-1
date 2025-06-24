@@ -14,23 +14,19 @@ TypeScript cannot handle type information for `.vue` imports by default, so we r
 
 See [Vite Configuration Reference](https://vite.dev/config/).
 
-## 说明
-
-node 版本 20.19.0
-
-## 安装依赖
+## Project Setup
 
 ```sh
 npm install
 ```
 
-### 运行
+### Compile and Hot-Reload for Development
 
 ```sh
 npm run dev
 ```
 
-### 打包
+### Type-Check, Compile and Minify for Production
 
 ```sh
 npm run build
