@@ -28,8 +28,9 @@ def search_drama(keyword: str):
             filtered = [
                 (item["id"], item["soundstr"])
                 for item in datas
-                if item.get("pay_type") == "2"
-                and keyword_lower in item.get("soundstr", "").lower()
+                # if item.get("pay_type") == "2"
+                # and keyword_lower in item.get("soundstr", "").lower()
+                if keyword_lower in item.get("soundstr", "").lower()
             ]
             collected.extend(filtered)
 

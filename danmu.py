@@ -117,12 +117,12 @@ def main():
             total_danmu += count
 
     print("\n📊 统计结果：")
-    print(f"🔹 实时弹幕总条数：{total_danmu}")
-    print(f"🔹 实时弹幕去重后id数：{len(user_danmu_dict)}")
+    print(f"🔹 实时付费弹幕总条数：{total_danmu}")
+    print(f"🔹 实时付费弹幕去重后id数：{len(user_danmu_dict)}")
     print(f"🕒 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"♣ 娱乐分享，请勿作为依据☺")
 
-    choice = input("\n是否导出去重后的弹幕为 Excel？(Y/N)：").strip().lower()
+    choice = input("\n是否导出去重后的实时付费弹幕 Excel？(Y/N)：").strip().lower()
     if choice == 'y':
         export_to_excel(user_danmu_dict)
     else:
