@@ -28,7 +28,7 @@ def search_drama(keyword: str):
             data = response.json()
             datas = data.get("info", {}).get("Datas", [])
 
-            # 👇 强化过滤逻辑
+            # 👇 过滤
             filtered = [
                 (item["id"], item["soundstr"])
                 for item in datas
