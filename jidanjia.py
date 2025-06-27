@@ -407,8 +407,8 @@ def draw_price_charts(csv_file="全部付费广播剧_集均价统计.csv"):
 
 
 if __name__ == "__main__":
-    RUN_MAIN = False     # 改为 True 就会运行 main()
-    RUN_DRAW = True      # 改为 False 就不绘图
+    RUN_MAIN = True     # 改为 True 就会运行 main()
+    RUN_DRAW = False      # 改为 False 就不绘图
 
     if RUN_MAIN:
         main()
