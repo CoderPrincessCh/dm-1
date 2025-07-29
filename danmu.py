@@ -40,8 +40,10 @@ def match_season(name: str, season_number: int):
 def search_drama(keyword: str):
     page = 1
     page_size = 30
-    keyword_lower = keyword.strip().lower()
-    season_grouped = defaultdict(list)  # 季号 -> [(id, name)]
+    season_grouped = {
+        "广播剧": defaultdict(list),
+        "有声剧": defaultdict(list)
+    }
 
     while True:
         params = {
@@ -58,23 +60,32 @@ def search_drama(keyword: str):
 
             for item in datas:
                 name = item.get("soundstr", "")
-                if item.get("pay_type") != "2":
-                    continue
-                if keyword_lower not in name.lower():
+                pay_type = item.get("pay_type")
+                catalog_id = item.get("catalog_id")
+
+                # 只保留付费内容
+                if pay_type != "2":
                     continue
 
-                # 尝试提取“第X季”或“Season X”
+                # 只识别有声剧(17) 和广播剧(19)
+                if catalog_id == "19":
+                    drama_type = "广播剧"
+                elif catalog_id == "17":
+                    drama_type = "有声剧"
+                else:
+                    continue  # 其他类型不要
+
+                # 判断季数
                 matched = False
-                for season in range(1, 11):  # 假设最多到第十季
+                for season in range(1, 11):  # 最多到第十季
                     if match_season(name, season):
-                        season_grouped[season].append((item["id"], name))
+                        season_grouped[drama_type][season].append((item["id"], name))
                         matched = True
                         break
                 if not matched:
-                    season_grouped[1].append((item["id"], name))  # 把未识别季归为“第一季”
+                    season_grouped[drama_type][1].append((item["id"], name))  # 没识别到季归入第一季
 
-
-            print(f"📄 第 {page} 页，共 {len(datas)} 条数据，已匹配季数：{len(season_grouped)}")
+            print(f"📄 第 {page} 页，共 {len(datas)} 条数据")
 
             if len(datas) < page_size:
                 break
@@ -144,35 +155,46 @@ def main():
         return
 
     print("🔍 正在搜索剧集...")
-    season_grouped = search_drama(keyword)
-    if not season_grouped:
+    all_grouped = search_drama(keyword)
+    if not all_grouped or not any(all_grouped.values()):
         print("❌ 未找到符合条件的剧集")
         return
 
-    sorted_seasons = sorted(season_grouped.keys())  # 例：[1, 2, 3] 或 [0, 1, 2]
-    print(f"\n🎬 找到以下季数：")
-    for idx, season in enumerate(sorted_seasons):
-        label = f"第{season}季"
-        # 尝试提取剧名前缀：取每一季第一个 soundstr 的前缀（去除“第X季”等）
-        sample_title = season_grouped[season][0][1]
-        # 去掉常见“第X季”描述
+    # Step 1: 选择类型
+    drama_types = [k for k in all_grouped.keys() if all_grouped[k]]
+    print("\n🎭 找到以下剧集类型：")
+    for idx, dtype in enumerate(drama_types, 1):
+        season_count = len(all_grouped[dtype])
+        print(f"{idx}. {dtype}（共 {season_count} 季）")
+
+    input_type = input("请选择类型编号：").strip()
+    if not input_type.isdigit() or not (1 <= int(input_type) <= len(drama_types)):
+        print("❌ 类型选择无效，程序终止。")
+        return
+    selected_type = drama_types[int(input_type) - 1]
+
+    # Step 2: 选择季数
+    selected_seasons = all_grouped[selected_type]
+    sorted_seasons = sorted(selected_seasons.keys())
+
+    print(f"\n📺 类型：{selected_type}，共 {len(sorted_seasons)} 季：")
+    for idx, season in enumerate(sorted_seasons, 1):
+        sample_title = selected_seasons[season][0][1]
         clean_title = re.sub(r"第[\d一二三四五六七八九十]+季", "", sample_title)
         clean_title = clean_title.strip(" -【】「」[]")
-        print(f"{idx + 1}. {clean_title} - {label}（共 {len(season_grouped[season])} 集）")
+        print(f"{idx}. {clean_title} - 第{season}季（共 {len(selected_seasons[season])} 集）")
 
-
-    input_str = input("\n请选择要处理的季（输入序号或中文数字）：").strip()
-    choice = to_index(input_str)
-
+    input_season = input("\n请选择要处理的季（输入序号或中文数字）：").strip()
+    choice = to_index(input_season)
     if not (1 <= choice <= len(sorted_seasons)):
-        print("❌ 无效选择，程序终止。")
+        print("❌ 季数选择无效，程序终止。")
         return
 
-    selected_season = sorted_seasons[choice - 1]
-    selected_sounds = season_grouped[selected_season]
-    label = f"第{selected_season}季" if selected_season > 0 else "未识别季"
+    season = sorted_seasons[choice - 1]
+    selected_sounds = selected_seasons[season]
+    label = f"第{season}季"
 
-    print(f"\n📥 正在获取弹幕：{label}（共 {len(selected_sounds)} 集）")
+    print(f"\n📥 正在获取弹幕：{selected_type} - {label}（共 {len(selected_sounds)} 集）")
     user_danmu_dict = OrderedDict()
     total_danmu = 0
 
@@ -185,16 +207,16 @@ def main():
 
     print("\n📊 统计结果：")
     print(f"🔹 实时付费弹幕总条数：{total_danmu}")
-    print(f"🔹 实时付费弹幕去重后id数：{len(user_danmu_dict)}")
+    print(f"🔹 去重后用户数：{len(user_danmu_dict)}")
     print(f"🕒 当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"♣ 娱乐分享，请勿作为依据☺")
+    print(f"♣ 数据仅供娱乐参考 ☺")
 
-    export_choice = input("\n是否导出去重后的实时付费弹幕 Excel？(Y/N)：").strip().lower()
+    export_choice = input("\n是否导出去重后的实时弹幕 Excel？(Y/N)：").strip().lower()
     if export_choice == 'y':
         clean_title = re.sub(r"第[\d一二三四五六七八九十]+季", "", selected_sounds[0][1])
         clean_title = clean_title.strip(" -【】「」[]")
-        export_to_excel(user_danmu_dict, filename=f"{clean_title}_{label}_弹幕.xlsx")
-
+        filename = f"{clean_title}_{selected_type}_{label}_弹幕.xlsx"
+        export_to_excel(user_danmu_dict, filename=filename)
     else:
         print("✅ 已取消导出")
 
